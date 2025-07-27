@@ -35,7 +35,7 @@ public:
 private:
 
     bool parallelSolveFixedNLP();
-    void processCandidate(PrimalFixedNLPCandidate CAND);
+    void processCandidate(PrimalFixedNLPCandidate CAND,  size_t i);
     NLPSolverPtr createNLPSolver(bool useReformulatedProblem); //runs in serial
     void createInfeasibilityCut(const VectorDouble point);
     void createIntegerCut(VectorDouble point);

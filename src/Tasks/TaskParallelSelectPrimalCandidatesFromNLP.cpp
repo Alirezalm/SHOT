@@ -9,7 +9,7 @@
 */
 
 #include "TaskParallelSelectPrimalCandidatesFromNLP.h"
-
+#include <thread>
 #include "../DualSolver.h"
 #include "../MIPSolver/IMIPSolver.h"
 #include "../Output.h"
@@ -39,13 +39,19 @@
 #endif
 
 #include "../NLPSolver/NLPSolverSHOT.h"
+#include "cppad/utility/thread_alloc.hpp"
 
 namespace SHOT
 {
 
+thread_local size_t tl_thread_num = 0;
 thread_local VectorInteger discreteVariableIndexes;
 thread_local VectorString variableNames;
 thread_local ProblemPtr sourceProblem;
+
+std::atomic<bool> parallel_mode { false };
+bool in_parallel() { return parallel_mode.load(); }
+size_t thread_num() { return tl_thread_num; }
 
 NLPSolverPtr TaskParallelSelectPrimalCandidatesFromNLP::createNLPSolver(bool useReformulatedProblem)
 {
@@ -153,6 +159,9 @@ TaskParallelSelectPrimalCandidatesFromNLP::TaskParallelSelectPrimalCandidatesFro
     EnvironmentPtr envPtr, bool useReformulatedProblem)
     : TaskBase(envPtr), useReformulatedProblem(useReformulatedProblem)
 {
+    size_t numThreads = 4;
+    CppAD::thread_alloc::parallel_setup(numThreads, in_parallel, thread_num);
+
     env->timing->startTimer("PrimalStrategy");
     env->timing->startTimer("PrimalBoundStrategyNLP");
 
@@ -212,11 +221,28 @@ bool TaskParallelSelectPrimalCandidatesFromNLP::parallelSolveFixedNLP()
 
     int counter = 0;
 
+    std::vector<std::thread> threads;
+    CppAD::thread_alloc::hold_memory(true);
+    CppAD::parallel_ad<double>();
+    parallel_mode.store(true);
+    
+    size_t i = 0;
+    
     for(auto& CAND : env->primalSolver->fixedPrimalNLPCandidates)
     {
-        processCandidate(CAND);
+        ++i;
+        threads.emplace_back([this, CAND, i]() { processCandidate(CAND, i); });
         counter++;
     }
+
+    for(auto& thread : threads)
+    {
+        thread.join();
+    }
+
+    parallel_mode.store(false);
+    CppAD::thread_alloc::hold_memory(false);
+    CppAD::parallel_ad<double>();
 
     return (true);
 }
@@ -318,8 +344,10 @@ void TaskParallelSelectPrimalCandidatesFromNLP::createIntegerCut(VectorDouble va
     env->dualSolver->addIntegerCut(integerCut);
 }
 
-void TaskParallelSelectPrimalCandidatesFromNLP::processCandidate(PrimalFixedNLPCandidate CAND)
+void TaskParallelSelectPrimalCandidatesFromNLP::processCandidate(PrimalFixedNLPCandidate CAND, size_t i)
 {
+    tl_thread_num = i;
+
     auto NLPSolver = createNLPSolver(useReformulatedProblem); // local
 
     VectorDouble fixedVariableValues(discreteVariableIndexes.size()); // local
@@ -609,7 +637,7 @@ void TaskParallelSelectPrimalCandidatesFromNLP::processCandidate(PrimalFixedNLPC
     {
         if(solvestatus == E_NLPSolutionStatus::Optimal || solvestatus == E_NLPSolutionStatus::Feasible)
         {
-             std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::mutex> lock(mutex);
             int iters = std::max(
                 std::ceil(env->settings->getSetting<int>("FixedInteger.Frequency.Iteration", "Primal") * 0.98),
                 originalNLPIter);
@@ -628,7 +656,7 @@ void TaskParallelSelectPrimalCandidatesFromNLP::processCandidate(PrimalFixedNLPC
         }
         else
         {
-             std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::mutex> lock(mutex);
             int iters = std::ceil(env->settings->getSetting<int>("FixedInteger.Frequency.Iteration", "Primal") * 1.02);
 
             if(iters < 10 * this->originalIterFrequency)
@@ -648,12 +676,9 @@ void TaskParallelSelectPrimalCandidatesFromNLP::processCandidate(PrimalFixedNLPC
         std::lock_guard<std::mutex> lock(mutex);
         env->solutionStatistics.numberOfIterationsWithoutNLPCallMIP = 0;
         env->solutionStatistics.timeLastFixedNLPCall = env->timing->getElapsedTime("Total");
-  
+
         env->primalSolver->usedPrimalNLPCandidates.push_back(CAND);
     }
-    
-
-    
 }
 
 } // namespace SHOT
