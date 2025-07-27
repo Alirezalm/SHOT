@@ -16,10 +16,13 @@
 #include <vector>
 
 #include "../Structs.h"
+#include <mutex>
 
 namespace SHOT
 {
 class INLPSolver;
+
+using NLPSolverPtr = std::shared_ptr<INLPSolver>;
 
 class TaskParallelSelectPrimalCandidatesFromNLP : public TaskBase
 {
@@ -30,14 +33,16 @@ public:
     std::string getType() override;
 
 private:
-    virtual bool solveFixedNLP();
 
+    bool parallelSolveFixedNLP();
+    void processCandidate(PrimalFixedNLPCandidate CAND);
+    NLPSolverPtr createNLPSolver(bool useReformulatedProblem); //runs in serial
     void createInfeasibilityCut(const VectorDouble point);
     void createIntegerCut(VectorDouble point);
 
-    std::shared_ptr<INLPSolver> NLPSolver;
+    // std::shared_ptr<INLPSolver> NLPSolver;
 
-    VectorInteger discreteVariableIndexes;
+    // VectorInteger discreteVariableIndexes;
     std::vector<VectorDouble> testedPoints;
     VectorDouble fixPoint;
 
@@ -47,14 +52,16 @@ private:
     VectorDouble originalLBs;
     VectorDouble originalUBs;
 
-    VectorString variableNames;
+    // VectorString variableNames;
 
     std::shared_ptr<TaskBase> taskSelectHPPts;
 
     int originalIterFrequency;
     double originalTimeFrequency;
 
-    ProblemPtr sourceProblem;
+    // ProblemPtr sourceProblem;
     bool sourceIsReformulatedProblem = false;
+    bool useReformulatedProblem = false;
+    std::mutex mutex;
 };
 } // namespace SHOT
