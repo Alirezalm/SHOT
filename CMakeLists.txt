@@ -179,6 +179,7 @@ file(
     "${PROJECT_SOURCE_DIR}/src/SolutionStrategy/*.h"
     "${PROJECT_SOURCE_DIR}/src/Tasks/*.h"
     "${PROJECT_SOURCE_DIR}/src/Settings.h"
+    "${PROJECT_SOURCE_DIR}/src/Concurrency/*.h"
     "${TINYXML2_DIR}/tinyxml2.h"
     #"${CPPAD_DIR}/include/cppad/cppad.hpp"
 )

@@ -32,3 +32,6 @@ build/*
 /.vs
 /out/build
 /.cache/
+
+*.log
+*.opts

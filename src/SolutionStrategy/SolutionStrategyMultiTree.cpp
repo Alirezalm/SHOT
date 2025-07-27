@@ -57,6 +57,9 @@
 #include "../Tasks/TaskSelectPrimalCandidatesFromSolutionPool.h"
 #include "../Tasks/TaskSelectPrimalCandidatesFromRootsearch.h"
 #include "../Tasks/TaskSelectPrimalCandidatesFromNLP.h"
+
+#include "../Tasks/TaskParallelSelectPrimalCandidatesFromNLP.h"
+
 #include "../Tasks/TaskSelectPrimalFixedNLPPointsFromSolutionPool.h"
 #include "../Tasks/TaskClearFixedPrimalCandidates.h"
 
@@ -215,7 +218,7 @@ SolutionStrategyMultiTree::SolutionStrategyMultiTree(EnvironmentPtr envPtr)
         if(NLPProblemSource == ES_PrimalNLPProblemSource::Both
             || NLPProblemSource == ES_PrimalNLPProblemSource::OriginalProblem)
         {
-            auto tSelectPrimNLPCheck = std::make_shared<TaskSelectPrimalCandidatesFromNLP>(env, false);
+            auto tSelectPrimNLPCheck = std::make_shared<TaskParallelSelectPrimalCandidatesFromNLP>(env, false);
             env->tasks->addTask(tSelectPrimNLPCheck, "SelectPrimNLPCheckOriginal");
             std::dynamic_pointer_cast<TaskSequential>(tFinalizeSolution)->addTask(tSelectPrimNLPCheck);
         }
@@ -223,7 +226,7 @@ SolutionStrategyMultiTree::SolutionStrategyMultiTree(EnvironmentPtr envPtr)
         if(NLPProblemSource == ES_PrimalNLPProblemSource::Both
             || NLPProblemSource == ES_PrimalNLPProblemSource::ReformulatedProblem)
         {
-            auto tSelectPrimNLPCheck = std::make_shared<TaskSelectPrimalCandidatesFromNLP>(env, true);
+            auto tSelectPrimNLPCheck = std::make_shared<TaskParallelSelectPrimalCandidatesFromNLP>(env, true);
             env->tasks->addTask(tSelectPrimNLPCheck, "SelectPrimNLPCheckReformulated");
             std::dynamic_pointer_cast<TaskSequential>(tFinalizeSolution)->addTask(tSelectPrimNLPCheck);
         }
