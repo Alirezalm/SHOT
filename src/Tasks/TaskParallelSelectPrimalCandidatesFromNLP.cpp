@@ -118,7 +118,7 @@ NLPSolverPtr TaskParallelSelectPrimalCandidatesFromNLP::createNLPSolver(bool use
         break;
     }
 
-    env->results->usedPrimalNLPSolverDescription = nlpSolver->getSolverDescription();
+    env->results->usedPrimalNLPSolverDescription = nlpSolver->getSolverDescription(); //todo: should be moved to the constructor 
 
     this->originalIterFrequency = env->settings->getSetting<int>("FixedInteger.Frequency.Iteration", "Primal");
     this->originalTimeFrequency = env->settings->getSetting<double>("FixedInteger.Frequency.Time", "Primal");
@@ -227,10 +227,11 @@ bool TaskParallelSelectPrimalCandidatesFromNLP::parallelSolveFixedNLP()
     parallel_mode.store(true);
     
     size_t i = 0;
-    
+    fmt::print("total number of candidates: {}\n", env->primalSolver->fixedPrimalNLPCandidates.size());
     for(auto& CAND : env->primalSolver->fixedPrimalNLPCandidates)
     {
         ++i;
+        
         threads.emplace_back([this, CAND, i]() { processCandidate(CAND, i); });
         counter++;
     }
