@@ -175,11 +175,7 @@ TaskParallelSelectPrimalCandidatesFromNLP::TaskParallelSelectPrimalCandidatesFro
     env->timing->stopTimer("PrimalStrategy");
 }
 
-TaskParallelSelectPrimalCandidatesFromNLP::~TaskParallelSelectPrimalCandidatesFromNLP(){
-
-    auto numThreads = env->parallelSHOT->getThreadCount();
-    CppAD::thread_alloc::parallel_setup(numThreads, nullptr, nullptr);
-};
+TaskParallelSelectPrimalCandidatesFromNLP::~TaskParallelSelectPrimalCandidatesFromNLP() = default;
 
 void TaskParallelSelectPrimalCandidatesFromNLP::run()
 {
@@ -233,7 +229,6 @@ bool TaskParallelSelectPrimalCandidatesFromNLP::parallelSolveFixedNLP()
     parallel_mode.store(true);
 
     size_t i = 0;
-    fmt::print("total number of candidates: {}\n", env->primalSolver->fixedPrimalNLPCandidates.size());
 
     for(auto& CAND : env->primalSolver->fixedPrimalNLPCandidates)
     {

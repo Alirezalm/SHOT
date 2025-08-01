@@ -76,11 +76,6 @@ public:
         
         futures.clear();
     }
-
-    void initializeAutoDiff() {
-        // todo
-    };
-
 private:
     ThreadPoolPtr threadPool;
 
