@@ -15,7 +15,6 @@ template <typename Task> class SHOTQueue
 public:
     SHOTQueue() : stop(false) {
 
-        std::cout << "SHOTQueue created." << std::endl;
      }
 
     SHOTQueue(const SHOTQueue&) = delete;
