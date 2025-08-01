@@ -1,48 +1,16 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <atomic>
 #include <memory>
 #include <thread>
-#include <type_traits>
 #include <vector>
-#include <functional>
 #include <future>
 #include "SHOTQueue.h"
 
 namespace SHOT
 {
-
-class IThreadTask
-{
-public:
-    IThreadTask(void) = default;
-    virtual ~IThreadTask(void) = default;
-    IThreadTask(const IThreadTask& rhs) = delete;
-    IThreadTask& operator=(const IThreadTask& rhs) = delete;
-    IThreadTask(IThreadTask&& other) = default;
-    IThreadTask& operator=(IThreadTask&& other) = default;
-    virtual void execute() = 0;
-};
-
-template <typename Func> class ThreadTask : public IThreadTask
-{
-public:
-    ThreadTask(Func&& func) : func(std::move(func)) { }
-    ~ThreadTask(void) override = default;
-
-    ThreadTask(const ThreadTask& rhs) = delete;
-    ThreadTask& operator=(const ThreadTask& rhs) = delete;
-
-    ThreadTask(ThreadTask&& other) = default;
-    ThreadTask& operator=(ThreadTask&& other) = default;
-
-    void execute() override { func(); }
-
-private:
-    Func func;
-};
-
 template <typename T> class SHOTFuture
 {
 public:
@@ -71,22 +39,7 @@ private:
 class SHOTThreadPool
 {
 public:
-    SHOTThreadPool(const size_t numThreads) : done { false }, workQueue(), threads {}
-    {
-
-        try
-        {
-            for(size_t i = 0; i < numThreads; ++i)
-            {
-                threads.emplace_back(&SHOTThreadPool::workerThread, this);
-            }
-        }
-        catch(...)
-        {
-            shutdown();
-            throw;
-        }
-    };
+    SHOTThreadPool(const size_t numThreads) : done { false }, workQueue {}, threads {}, threadCount { numThreads } { };
 
     SHOTThreadPool(const SHOTThreadPool& rhs) = delete;
     SHOTThreadPool& operator=(const SHOTThreadPool& rhs) = delete;
@@ -96,46 +49,33 @@ public:
 
     ~SHOTThreadPool() { shutdown(); }
 
-    template <typename Func, typename... Args> auto submitTask(Func&& func, Args&&... args)
+    void start()
     {
-        auto boundTask = std::bind(std::forward<Func>(func), std::forward<Args>(args)...);
-
-        using ResultType = std::invoke_result_t<decltype(boundTask)>;
-
-        using PackagedTask = std::packaged_task<ResultType()>;
-
-        using TaskType = ThreadTask<PackagedTask>;
-
-        PackagedTask task(std::move(boundTask));
-
-        SHOTFuture<ResultType> result(task.get_future());
-
-        workQueue.push(std::make_unique<TaskType>(std::move(task)));
-
-        return result;
-    }
-
-private:
-    void workerThread()
-    {
-
-        while(!done)
+        try
         {
-
-            std::unique_ptr<IThreadTask> pTask;
-
-            if(workQueue.tryPop(pTask))
+            for(size_t i = 0; i < threadCount; ++i)
             {
-
-                pTask->execute();
+                threads.emplace_back(&SHOTThreadPool::workerThread, this);
             }
-            else
-            {
-                std::this_thread::yield();
-            }
+        }
+        catch(...)
+        {
+            shutdown();
+            throw;
         }
     }
 
+    template <typename Func> auto submitTask(Func&& func)
+    {
+
+        std::packaged_task<void()> task(std::move(func));
+
+        SHOTFuture<void> result(task.get_future());
+
+        workQueue.push(std::move(task));
+
+        return result;
+    }
     void shutdown()
     {
         done = true;
@@ -150,12 +90,32 @@ private:
         threads.clear();
     }
 
+private:
+    void workerThread()
+    {
+
+        while(!done)
+        {
+
+            std::packaged_task<void()> task;
+
+            if(workQueue.tryPop(task))
+            {
+
+                task();
+            }
+            else
+            {
+                std::this_thread::yield();
+            }
+        }
+    }
+
     std::atomic<bool> done;
-    SHOTQueue<std::unique_ptr<IThreadTask>> workQueue;
+    SHOTQueue<std::packaged_task<void()>> workQueue;
     std::vector<std::thread> threads;
+    size_t threadCount;
 };
 using ThreadPoolPtr = std::shared_ptr<SHOTThreadPool>;
-
-
 
 };

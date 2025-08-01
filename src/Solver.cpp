@@ -120,9 +120,8 @@ Solver::Solver(std::shared_ptr<spdlog::sinks::sink> consoleSink)
 
 void Solver::parallelSetup()
 {
-
-    auto numThreads = std::thread::hardware_concurrency();
-    env->threadPool = std::make_shared<SHOTThreadPool>(numThreads);
+    env->parallelSHOT = std::make_shared<ParallelSHOT>();
+    env->parallelSHOT->startThreadPool();
 }
 
 Solver::Solver(EnvironmentPtr envPtr) : env(envPtr) { initializeSettings(); }

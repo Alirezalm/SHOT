@@ -223,8 +223,6 @@ bool TaskParallelSelectPrimalCandidatesFromNLP::parallelSolveFixedNLP()
 
     int counter = 0;
 
-    auto pool = env->threadPool;
-
     CppAD::thread_alloc::hold_memory(true);
     CppAD::parallel_ad<double>();
     parallel_mode.store(true);
@@ -232,22 +230,16 @@ bool TaskParallelSelectPrimalCandidatesFromNLP::parallelSolveFixedNLP()
     size_t i = 0;
     fmt::print("total number of candidates: {}\n", env->primalSolver->fixedPrimalNLPCandidates.size());
 
-    std::vector<SHOTFuture<void>> futures;
-
     for(auto& CAND : env->primalSolver->fixedPrimalNLPCandidates)
     {
         ++i;
-        
-        auto f = pool->submitTask([this, CAND, i]() { processCandidate(CAND, i); });
-        futures.push_back(std::move(f));
+
+        env->parallelSHOT->submitTask([this, CAND, i]() { processCandidate(CAND, i); });
 
         counter++;
     }
 
-    for(auto& fut : futures)
-    {
-        fut.get();
-    }
+    env->parallelSHOT->waitForAllTasks();
 
     parallel_mode.store(false);
     CppAD::thread_alloc::hold_memory(false);

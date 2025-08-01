@@ -12,7 +12,7 @@
 
 #include <memory>
 
-#include "SHOTThreadPool.h"
+#include "ParallelSHOT.h"
 #include "Structs.h"
 
 namespace SHOT
@@ -43,7 +43,7 @@ public:
 
     SolutionStatistics solutionStatistics;
 
-    ThreadPoolPtr threadPool;
+    ParallelSHOTPtr parallelSHOT;
 
 private:
 };
