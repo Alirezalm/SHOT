@@ -71,7 +71,7 @@ private:
 class SHOTThreadPool
 {
 public:
-    SHOTThreadPool(const size_t numThreads) : done { false }, workQueue {}, threads {}
+    SHOTThreadPool(const size_t numThreads) : done { false }, workQueue(), threads {}
     {
 
         try
@@ -154,5 +154,8 @@ private:
     SHOTQueue<std::unique_ptr<IThreadTask>> workQueue;
     std::vector<std::thread> threads;
 };
+using ThreadPoolPtr = std::shared_ptr<SHOTThreadPool>;
+
+
 
 };

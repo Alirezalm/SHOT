@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 #include <queue>
 #include <mutex>
@@ -12,7 +13,10 @@ namespace SHOT
 template <typename Task> class SHOTQueue
 {
 public:
-    SHOTQueue() : stop(false) { }
+    SHOTQueue() : stop(false) {
+
+        std::cout << "SHOTQueue created." << std::endl;
+     }
 
     SHOTQueue(const SHOTQueue&) = delete;
     SHOTQueue& operator=(const SHOTQueue&) = delete;

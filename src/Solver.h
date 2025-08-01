@@ -42,6 +42,8 @@ private:
 
     bool selectStrategy();
 
+    void parallelSetup();
+
     bool isProblemInitialized = false;
     bool isProblemSolved = false;
 

@@ -80,6 +80,7 @@ Solver::Solver()
 
     env->dualSolver = std::make_shared<DualSolver>(env);
     env->primalSolver = std::make_shared<PrimalSolver>(env);
+    parallelSetup();
     initializeSettings();
 }
 
@@ -111,7 +112,17 @@ Solver::Solver(std::shared_ptr<spdlog::sinks::sink> consoleSink)
 
     env->dualSolver = std::make_shared<DualSolver>(env);
     env->primalSolver = std::make_shared<PrimalSolver>(env);
+
+    parallelSetup();
+
     initializeSettings();
+}
+
+void Solver::parallelSetup()
+{
+
+    auto numThreads = std::thread::hardware_concurrency();
+    env->threadPool = std::make_shared<SHOTThreadPool>(numThreads);
 }
 
 Solver::Solver(EnvironmentPtr envPtr) : env(envPtr) { initializeSettings(); }

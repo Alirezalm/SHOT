@@ -20,6 +20,7 @@
 #include "../Solver.h"
 #include "../Timing.h"
 #include "../Utilities.h"
+#include "../Concurrency/SHOTThreadPool.h"
 
 #include "../Model/Problem.h"
 #include "../NLPSolver/INLPSolver.h"
@@ -159,7 +160,8 @@ TaskParallelSelectPrimalCandidatesFromNLP::TaskParallelSelectPrimalCandidatesFro
     EnvironmentPtr envPtr, bool useReformulatedProblem)
     : TaskBase(envPtr), useReformulatedProblem(useReformulatedProblem)
 {
-    size_t numThreads = 4;
+    size_t numThreads = std::thread::hardware_concurrency();
+
     CppAD::thread_alloc::parallel_setup(numThreads, in_parallel, thread_num);
 
     env->timing->startTimer("PrimalStrategy");
@@ -221,24 +223,30 @@ bool TaskParallelSelectPrimalCandidatesFromNLP::parallelSolveFixedNLP()
 
     int counter = 0;
 
-    std::vector<std::thread> threads;
+    auto pool = env->threadPool;
+
     CppAD::thread_alloc::hold_memory(true);
     CppAD::parallel_ad<double>();
     parallel_mode.store(true);
     
     size_t i = 0;
     fmt::print("total number of candidates: {}\n", env->primalSolver->fixedPrimalNLPCandidates.size());
+
+    std::vector<SHOTFuture<void>> futures;
+
     for(auto& CAND : env->primalSolver->fixedPrimalNLPCandidates)
     {
         ++i;
         
-        threads.emplace_back([this, CAND, i]() { processCandidate(CAND, i); });
+        auto f = pool->submitTask([this, CAND, i]() { processCandidate(CAND, i); });
+        futures.push_back(std::move(f));
+
         counter++;
     }
 
-    for(auto& thread : threads)
+    for(auto& fut : futures)
     {
-        thread.join();
+        fut.get();
     }
 
     parallel_mode.store(false);

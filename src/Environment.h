@@ -12,6 +12,7 @@
 
 #include <memory>
 
+#include "SHOTThreadPool.h"
 #include "Structs.h"
 
 namespace SHOT
@@ -41,6 +42,8 @@ public:
     std::shared_ptr<IRootsearchMethod> rootsearchMethod;
 
     SolutionStatistics solutionStatistics;
+
+    ThreadPoolPtr threadPool;
 
 private:
 };
