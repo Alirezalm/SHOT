@@ -49,6 +49,8 @@ public:
 
     ~SHOTThreadPool() { shutdown(); }
 
+    size_t getThreadCount() const { return threadCount; }
+
     void start()
     {
         try

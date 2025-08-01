@@ -46,6 +46,15 @@ public:
 
     ThreadPoolPtr getThreadPool() const { return threadPool; }
 
+    size_t getThreadCount() const
+    {
+        if(threadPool)
+        {
+            return threadPool->getThreadCount();
+        }
+        return 0;
+    }
+
     void submitTask(std::function<void()>&& task)
     {
         if(!threadPool)

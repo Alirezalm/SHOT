@@ -119,7 +119,8 @@ NLPSolverPtr TaskParallelSelectPrimalCandidatesFromNLP::createNLPSolver(bool use
         break;
     }
 
-    env->results->usedPrimalNLPSolverDescription = nlpSolver->getSolverDescription(); //todo: should be moved to the constructor 
+    env->results->usedPrimalNLPSolverDescription
+        = nlpSolver->getSolverDescription(); // todo: should be moved to the constructor
 
     this->originalIterFrequency = env->settings->getSetting<int>("FixedInteger.Frequency.Iteration", "Primal");
     this->originalTimeFrequency = env->settings->getSetting<double>("FixedInteger.Frequency.Time", "Primal");
@@ -160,7 +161,7 @@ TaskParallelSelectPrimalCandidatesFromNLP::TaskParallelSelectPrimalCandidatesFro
     EnvironmentPtr envPtr, bool useReformulatedProblem)
     : TaskBase(envPtr), useReformulatedProblem(useReformulatedProblem)
 {
-    size_t numThreads = std::thread::hardware_concurrency();
+    size_t numThreads = env->parallelSHOT->getThreadCount();
 
     CppAD::thread_alloc::parallel_setup(numThreads, in_parallel, thread_num);
 
@@ -174,7 +175,11 @@ TaskParallelSelectPrimalCandidatesFromNLP::TaskParallelSelectPrimalCandidatesFro
     env->timing->stopTimer("PrimalStrategy");
 }
 
-TaskParallelSelectPrimalCandidatesFromNLP::~TaskParallelSelectPrimalCandidatesFromNLP() = default;
+TaskParallelSelectPrimalCandidatesFromNLP::~TaskParallelSelectPrimalCandidatesFromNLP(){
+
+    auto numThreads = env->parallelSHOT->getThreadCount();
+    CppAD::thread_alloc::parallel_setup(numThreads, nullptr, nullptr);
+};
 
 void TaskParallelSelectPrimalCandidatesFromNLP::run()
 {
@@ -226,7 +231,7 @@ bool TaskParallelSelectPrimalCandidatesFromNLP::parallelSolveFixedNLP()
     CppAD::thread_alloc::hold_memory(true);
     CppAD::parallel_ad<double>();
     parallel_mode.store(true);
-    
+
     size_t i = 0;
     fmt::print("total number of candidates: {}\n", env->primalSolver->fixedPrimalNLPCandidates.size());
 
